@@ -1,0 +1,143 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Architecture Guide
+
+You are an expert in Go, backend architecture, and maintainable service design. Your responsibility is to ensure that this project is structured around proven, scalable, and testable principles. The system applies Hexagonal Architecture (also known as Ports and Adapters) as a concrete implementation of Clean Architecture, with an emphasis on dependency inversion, separation of concerns, and interface-driven design.
+
+⸻
+
+Architecture Principles
+
+✅ High-level goals
+	•	Encapsulate business logic in pure, framework-independent code.
+	•	Isolate the system’s core from infrastructure and external services.
+	•	Ensure every component is testable, replaceable, and observable.
+	•	Maximize clarity, cohesion, and evolutionary design.
+
+⸻
+
+Hexagonal Architecture (Ports and Adapters)
+
+This project follows the Hexagonal Architecture pattern, structured into:
+
+Layer	Location	Description
+Domain Models	internal/core/domain/	Core business entities and value objects, with no dependencies.
+Ports (Interfaces)	internal/core/ports/	Contracts defining communication between the domain and the outside.
+Use Cases / Services	internal/core/services/, *_usecase.go	Application logic that orchestrates domain behavior.
+Primary Adapters	internal/infra/primary/controller/	External interfaces: HTTP APIs, REST controllers.
+Secondary Adapters	internal/infra/secondary/repositories/	Infrastructure implementations: databases, external APIs, queues.
+Data Access / DAOs	repositories/postgres/dao/	Low-level database access using SQL and PostgreSQL.
+
+This structure allows the domain to remain isolated from frameworks, databases, and transport mechanisms.
+
+⸻
+
+Project Structure Guidelines
+
+base-golang/
+├── cmd/                             # Application entrypoint
+├── internal/
+│   ├── core/
+│   │   ├── domain/                  # Pure domain models
+│   │   ├── ports/                   # Interfaces (ports)
+│   │   ├── services/                # Domain-level services
+│   │   ├── *_usecase.go            # Use cases as orchestrators
+│   ├── infra/
+│   │   ├── config/                 # Configuration loading and instances
+│   │   ├── primary/controller/    # Input adapters (e.g. HTTP controllers)
+│   │   ├── secondary/repositories/ # Output adapters (e.g. database)
+│   │   │   └── postgres/dao/       # PostgreSQL DAOs and SQL-specific access
+│   └── resources/                  # Translations, SQL migrations, assets
+├── docs/                            # API documentation (Swagger/OpenAPI)
+├── test/                            # Integration tests, mocks, helpers
+├── go.mod                           # Go module definition
+└── README.md                        # Project documentation
+
+
+⸻
+
+Design Conventions
+	•	Domain logic is pure and isolated: no direct calls to HTTP, SQL, or external packages.
+	•	All dependencies are injected via constructors (no global state).
+	•	Interfaces define all interactions between layers; implementations live in infra/.
+	•	Adaptation between layers is explicit via DTOs and mappers.
+	•	Use case functions return explicit errors, wrapped with context using fmt.Errorf("context: %w", err).
+
+⸻
+
+Execution Flow
+
+[ HTTP Request ]
+      ↓
+[ Controller (Primary Adapter) ]
+      ↓
+[ Use Case / Service ]
+      ↓
+[ Port Interface ]
+      ↓
+[ Repository (Secondary Adapter) ]
+      ↓
+[ External System: DB, API, Queue ]
+
+
+⸻
+
+Testing Strategy
+	•	Unit tests target domain services and use cases using mock ports.
+	•	Integration tests validate infrastructure behavior with real systems (DB, APIs).
+	•	Tests are organized by feature and layered:
+	•	Unit: fast, deterministic
+	•	Integration: slower, realistic
+	•	Follow table-driven testing and t.Parallel() where possible.
+	•	Use generated or handwritten mock interfaces to isolate behavior.
+
+⸻
+
+Observability and Traceability
+	•	All operations propagate context.Context for deadlines, cancellations, and trace propagation.
+	•	Tracing is implemented using OpenTelemetry, with spans for all incoming and outgoing calls.
+	•	Controllers attach context to logs and metrics with trace IDs for correlation.
+	•	Logs are structured (JSON) and emitted with proper levels: info, warn, error.
+	•	Distributed traces span across services, databases, and external APIs.
+
+⸻
+
+Resilience and Safety
+	•	Validate and sanitize all external input (e.g. request bodies, query params).
+	•	All external calls implement timeouts, retries, and circuit breakers where needed.
+	•	Use rate limiting at ingress (API gateway, middleware) and optionally distributed (e.g. Redis).
+	•	Secure configuration handling: no secrets hardcoded; all sensitive settings via environment or vaults.
+
+⸻
+
+Dependency and Tooling Guidelines
+	•	Prefer Go’s standard library; minimize third-party dependencies.
+	•	Use Go modules for dependency tracking and reproducibility.
+	•	Enforce code quality via:
+	•	go fmt, goimports
+	•	golangci-lint with strict rules
+	•	go test -cover, go vet, staticcheck, gosec
+	•	All tests and linters must run in CI pipelines before merging.
+
+⸻
+
+Performance and Concurrency
+	•	Use goroutines safely, with clear cancellation via context.
+	•	Avoid shared mutable state; prefer channels or sync primitives where needed.
+	•	Run benchmarks (go test -bench) for performance-sensitive code.
+	•	Defer and close all resources (db.Close(), body.Close()) to prevent leaks.
+
+⸻
+
+Summary
+
+This architecture ensures that:
+	•	Core business logic is independent of technical concerns.
+	•	Each component is replaceable and testable.
+	•	Codebase is easy to navigate, scale, and evolve.
+	•	Observability, security, and resilience are built-in from the ground up.
+
+Design for clarity, change, and correctness — not just for working code.

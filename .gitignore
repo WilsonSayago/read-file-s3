@@ -19,3 +19,34 @@
 
 # Go workspace file
 go.work
+
+# AWS and Security Files
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.crt
+.aws/
+credentials
+config
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.cursor/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
